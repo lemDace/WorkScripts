@@ -1,4 +1,4 @@
-Attribute VB_Name = "Module1"
+'Attribute VB_Name = "Module1"
 Sub BatchPrintAllRecords()
     Dim wsData As Worksheet
     Dim lastRow As Long
@@ -33,6 +33,20 @@ Sub BatchPrintAllRecords()
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
     
+    ' ?? Show print dialog ONCE at the start
+    ' If user presses Cancel, exit gracefully
+    If Application.Dialogs(xlDialogPrint).Show = False Then   'Check dialog result
+        MsgBox "Process cancelled. No printer selected.", vbExclamation
+        Print #logFileNum, "Process cancelled by user: " & Now() 'Log cancellation
+        Close #logFileNum
+        Exit Sub                                             'Stop macro
+    End If
+    
+    ' Store the chosen printer name for later use
+    chosenPrinter = Application.ActivePrinter
+    
+    Print #logFileNum, "Printer selected: " & chosenPrinter   'Print to log the printer being used
+    
     For r = 2 To lastRow
         
         modelName = wsData.Cells(r, "V").Value ' Adjust if ModelName is in another column
@@ -65,7 +79,7 @@ Sub BatchPrintAllRecords()
             'setup the worksheet for printing here
             With wsTemplate.PageSetup
             
-                Print #logFileNum, "setting up page for printing"
+                'DEBUG LINE: Print #logFileNum, "setting up page for printing"
                 .FitToPagesWide = 1 'scale page so that all columns fit on the same page
                 .Zoom = False
                 '.Orientation = xlLandscape
@@ -74,6 +88,7 @@ Sub BatchPrintAllRecords()
                                                 
             ' Print with error handling
             On Error Resume Next
+            Application.ActivePrinter = chosenPrinter
             wsTemplate.PrintOut Copies:=1, Collate:=True, IgnorePrintAreas:=False
             If Err.Number = 0 Then
                 printSuccess = True
