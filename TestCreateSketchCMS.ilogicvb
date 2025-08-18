@@ -1,0 +1,314 @@
+﻿'=============================================================
+'
+'	Class Name: MainClass
+'
+'	Author: Lee Sinclair
+'
+'	Created: 18/11/2024
+'
+'	Description:	Script To screate a sketch On a selected face/plane
+'		that has the correct cutout dimensions for the selected CMS unit
+'	
+'	TODO: 	Test If sketch already exists
+'			Prompt user to select a face to create sketch on
+'			Add drawing functino for each CMS cutout type (DONE)
+'			PUBLIC Classes for each CMS Type to encapsulate its information (DONE)
+'			PRIVATE Subs for building sketches (DONE)
+'			Make CLEARANCE sketch out of construction lines
+'
+'=============================================================
+Public Class MainClass
+	
+	'=============================================================
+	'
+	'	Class Name: CMS_SPECS
+	'
+	'	Author: Lee Sinclair
+	'
+	'	Created: 19/11/2024
+	' 	
+	'	Description: Class To handle Information about a CMS unit
+	'
+	'	NOTES: iLogic uses cm as unit of measurement,
+	'		declare classes before Main sub, not after, else they may not be recognised
+	'			
+	'=============================================================
+	Public Class CMS_SPECS
+		
+		Public Name As String = "NAME_TEMP"
+		Public Description As String = "DESCRIPTION_TEMP"
+		Public AssemblyName As String = "ASSEMBLY_NAME_TEMP"
+		Public CutoutLength As Double = 0 'Exact size of the cutout needed in the top
+		Public CutoutWidth As Double = 0 'Exact size of the cutout needed in the top
+		Public ClearanceLength As Double = 0 'How much clearance is needed underneath table to accommodate the CMS Box
+		Public ClearanceWidth As Double = 0 'How much clearance is needed underneath table to accommodate the CMS Box
+		Public CutoutShape As String = "SHAPE_TEMP" 'This is if it is a Rectangle or Slot shaped cutout
+		
+	
+		'=============================================================
+		' 	Description: Class Constructor, can be called when initialising class
+		'=============================================================
+		Public Sub New(tName As String, tCutoutShape As String, tCutoutLength As Double, tCutoutWidth As Double, _
+			tClearanceLength As Double, tClearanceWidth As Double)
+			
+			Name = tName
+			CutoutShape = tCutoutShape
+			CutoutLength = tCutoutLength
+			CutoutWidth = tCutoutWidth
+			ClearanceLength = tClearanceLength
+			ClearanceWidth = tClearanceWidth
+
+		End Sub
+				
+	End Class
+	
+	
+	'=============================================================
+	' 	Description: Main Entry into script
+	'=============================================================
+	Private Sub Main()
+		
+		'	Define and setup the CMS data
+		Dim CMS_SL As New CMS_SPECS("CMS-SL","Rect",33.9,11,37.9,17.9)
+			
+		Dim CMS_SL_V As New CMS_SPECS("CMS-SL-V","Rect",33.9,11,37.9,17.9)
+		
+		Dim CMS_DL As New CMS_SPECS("CMS-DL","Rect",29,21.8,33.1,29)
+		
+		Dim CMS_DL_V As New CMS_SPECS("CMS-DL-V","Rect",29,21.8,33.1,29)
+		
+		Dim ECHO_SINGLE As New CMS_SPECS("Echo Single", "Slot", 6, 6, 6.5, 6.5)
+		
+		Dim ECHO_DOUBLE As New CMS_SPECS("Echo Double", "Slot", 11.8, 6, 12.3, 6.5)
+		
+		Dim ECHO_Trio As New CMS_SPECS("Echo Trio", "Slot", 17.6, 6, 18.1, 6.5)
+		
+		Dim NEO_SL As New CMS_SPECS("Neo Single Lid","Rect",44.4,14.2,18.1,6.5)
+		
+		
+		'Setup list of CMS options to choose from
+		Dim oCMSlist As New ArrayList
+		
+		oCMSlist.Add(CMS_SL.Name)
+		oCMSlist.Add(CMS_SL_V.Name)
+		oCMSlist.Add(CMS_DL.Name)
+		oCMSlist.Add(CMS_DL_V.Name)
+		oCMSlist.Add(ECHO_SINGLE.Name)
+		oCMSlist.Add(ECHO_DOUBLE.Name)
+		oCMSlist.Add(ECHO_Trio.Name)
+		oCMSlist.Add(NEO_SL.Name)
+		
+		oCMSlist.Add("Other")
+		
+		'Create selection box for user to choose which CMS unit to use
+		Dim oSelectedCMS As String
+		oSelectedCMS = InputListBox("Select CMS Unit to use", oCMSlist)
+		
+		'===========================================================
+		'TODO: Put this block into its own function to create the physical sketch file
+		'		pass the function the selected CMS type in order for the function to create the
+		'		sketchName
+		
+		'Create name of new sketch based on previous selection
+		Dim sketchName As String = oSelectedCMS & " CUTOUT SKETCH"
+		'sketchName = InputBox("Please Input The Title")
+		
+		'???Check what this does
+		Dim oDoc As PartDocument = ThisDoc.Document
+		
+		'set a reference to component definition (TODO:what is comp def??)
+		Dim oCD As PartComponentDefinition
+		oCD = oDoc.ComponentDefinition
+		
+		'select plane to create sketch on. These are origin planes
+		'Dim oPlaneYZ As WorkPlane = oCD.WorkPlanes.Item(1)
+		Dim oPlaneXZ As WorkPlane = oCD.WorkPlanes.Item(2)
+		'Dim oPlaneXY As WorkPlane = oCD.WorkPlanes.Item(3)
+		
+		'Create a new sketch on given workPlane (oPlaneXZ)
+		'TODO: Let user select a face to create sketch on
+		Dim oSketch As Sketch
+		oSketch = oCD.Sketches.Add(oPlaneXZ)
+		oSketch.Name = sketchName 'name the sketch using the name built based on user selections
+		
+		'============================================================
+		
+
+		'Draw sketch for user selected CMS unit
+		'TODO : Add Slot type sketches (DONE)
+		
+		If oSelectedCMS = "CMS-SL" Then
+			
+			DrawRectSketch_CUTOUT(CMS_SL, oSketch)
+			DrawRectSketch_CLEARANCE(CMS_SL, oSketch)
+			
+		Else If oSelectedCMS = "CMS-SL-V" Then
+		
+			DrawRectSketch_CUTOUT(CMS_SL_V, oSketch)
+			DrawRectSketch_CLEARANCE(CMS_SL_V, oSketch)
+			
+		Else If oSelectedCMS = "CMS-DL" Then
+		
+			DrawRectSketch_CUTOUT(CMS_DL, oSketch)
+			DrawRectSketch_CLEARANCE(CMS_DL, oSketch)
+			
+		Else If oSelectedCMS = "CMS-DL-V" Then
+		
+			DrawRectSketch_CUTOUT(CMS_DL_V, oSketch)
+			DrawRectSketch_CLEARANCE(CMS_DL_V, oSketch)
+			
+		Else If oSelectedCMS = "Echo Single" Then
+		
+			'Echo single cutout needs to be a circle with a notch in it.
+		
+			'DrawSlotSketch_CUTOUT(ECHO_SINGLE, oSketch)
+			'DrawSlotSketch_CLEARANCE(ECHO_SINGLE, oSketch)
+			
+		Else If oSelectedCMS = "Echo Double" Then
+		
+			DrawSlotSketch_CUTOUT(ECHO_DOUBLE, oSketch)
+			DrawSlotSketch_CLEARANCE(ECHO_DOUBLE, oSketch)
+			
+		Else If oSelectedCMS = "Echo Trio" Then
+			
+			DrawSlotSketch_CUTOUT(ECHO_Trio, oSketch)
+			DrawSlotSketch_CLEARANCE(ECHO_Trio, oSketch)
+			
+		Else If oSelectedCMS = "Neo Single Lid" Then
+			
+			DrawRectSketch_CUTOUT(NEO_SL, oSketch)
+			
+		Else
+			'do nothing if nothin is selected				
+		End If
+
+	End Sub
+
+	
+	'============================================================================
+	' 	Description: Draw a Slot based on CUTOUT dimensions of selected CMS unit
+	'============================================================================
+	Public Sub DrawSlotSketch_CUTOUT(tCMS As CMS_SPECS, tSketch As Sketch)
+	
+		'get a reference to the transient geometry object. This object helps us with drawing functions
+		Dim oTransGeom As TransientGeometry
+		oTransGeom = ThisApplication.TransientGeometry
+	
+		' Create a new transaction to wrap the construction into a single undo.
+		Dim oTrans As Transaction
+	
+		'Create sketch for CUTOUT
+		oTrans = ThisApplication.TransactionManager.StartTransaction( _
+	    ThisApplication.ActiveDocument, _
+	    "Create CMS Cutout Sketch with SLOT shape")
+	
+		tSketch.AddStraightSlotBySlotCenter(oTransGeom.CreatePoint2d(0,0),oTransGeom.CreatePoint2d((tCMS.CutoutLength-tCMS.CutoutWidth)/2),tCMS.CutoutWidth)
+	
+		oTrans.End
+	
+	End Sub
+
+
+	'============================================================================
+	' 	Description: Draw a Slot based on CLEARANCE dimensions of selected CMS unit
+	'============================================================================
+	Public Sub DrawSlotSketch_CLEARANCE(tCMS As CMS_SPECS, tSketch As Sketch)
+	
+		'get a reference to the transient geometry object. This object helps us with drawing functions
+		Dim oTransGeom As TransientGeometry
+		oTransGeom = ThisApplication.TransientGeometry
+	
+		' Create a new transaction to wrap the construction into a single undo.
+		Dim oTrans As Transaction
+		
+		'Create sketch for CLEARANCE distance
+		oTrans = ThisApplication.TransactionManager.StartTransaction( _
+	    ThisApplication.ActiveDocument, _
+	    "Create CMS Cutout Sketch with SLOT shape")
+	
+		tSketch.AddStraightSlotBySlotCenter(oTransGeom.CreatePoint2d(0,0),oTransGeom.CreatePoint2d((tCMS.ClearanceLength-tCMS.ClearanceWidth)/2),tCMS.ClearanceWidth)
+	
+		oTrans.End
+	
+	End Sub
+
+	
+	'============================================================================
+	' 	Description: Draw a Rectangle based on CUTOUT dimensions of selected CMS unit
+	'============================================================================
+	Public Sub DrawRectSketch_CUTOUT(tCMS As CMS_SPECS, tSketch As Sketch)
+	
+		'get a reference to the transient geometry object. This object helps us with drawing functions
+		Dim oTransGeom As TransientGeometry
+		oTransGeom = ThisApplication.TransientGeometry
+	
+		' Create a new transaction to wrap the construction into a single undo.
+		Dim oTrans As Transaction
+	    
+		' Define a new SketchLine to build new sketch. This is an array of 2-point lines that can be used as reference when building a closed loop
+		Dim lines(4) As SketchLine
+		
+		' Create sketch for CUTOUT
+		oTrans = ThisApplication.TransactionManager.StartTransaction( _
+	    ThisApplication.ActiveDocument, _
+	    "Create CMS Cutout Sketch with RECTANGLE shape")
+	
+		' Define the LINES to build CMS cutout sketch.
+		' Each LINE requires 2 points and when we reference a previous lines end or start point it will help create coincident constraint
+		lines(1) = tSketch.SketchLines.AddByTwoPoints(oTransGeom.CreatePoint2d(-(tCMS.CutoutLength/2), (tCMS.CutoutWidth/2)), _
+	    oTransGeom.CreatePoint2d((tCMS.CutoutLength/2), (tCMS.CutoutWidth/2)))
+
+	    lines(2) = tSketch.SketchLines.AddByTwoPoints(lines(1).EndSketchPoint, _
+	    oTransGeom.CreatePoint2d((tCMS.CutoutLength/2), -(tCMS.CutoutWidth/2)))
+	
+	    lines(3) = tSketch.SketchLines.AddByTwoPoints(lines(2).EndSketchPoint, _
+	    oTransGeom.CreatePoint2d(-(tCMS.CutoutLength/2), -(tCMS.CutoutWidth/2)))
+		
+		lines(4) = tSketch.SketchLines.AddByTwoPoints(lines(3).EndSketchPoint, _
+	    lines(1).StartSketchPoint)
+			 
+	    ' End the transaction for the triangle.
+	    oTrans.End
+	
+	End Sub
+	
+	
+	'============================================================================
+	' 	Description: Draw a Rectangle based on CLEARANCE dimensions of selected CMS unit
+	'============================================================================
+	Public Sub DrawRectSketch_CLEARANCE(tCMS As CMS_SPECS, tSketch As Sketch)
+	
+		'get a reference to the transient geometry object. This object helps us with drawing functions
+		Dim oTransGeom As TransientGeometry
+		oTransGeom = ThisApplication.TransientGeometry
+	
+		' Create a new transaction to wrap the construction into a single undo.
+		Dim oTrans As Transaction
+	    
+		' Define a new SketchLine to build new sketch. This is an array of 2-point lines that can be used as reference when building a closed loop
+		Dim lines(4) As SketchLine
+		
+		' Create sketch for CLEARANCE distance
+		oTrans = ThisApplication.TransactionManager.StartTransaction( _
+	    ThisApplication.ActiveDocument, _
+	    "Create CMS Clearance Sketch with RECTANGLE shape")
+	
+		' Define a new SketchLine to build new sketch
+		lines(1) = tSketch.SketchLines.AddByTwoPoints(oTransGeom.CreatePoint2d(-(tCMS.ClearanceLength/2), (tCMS.ClearanceWidth/2)), _
+	    oTransGeom.CreatePoint2d((tCMS.ClearanceLength/2), (tCMS.ClearanceWidth/2)))
+
+	    lines(2) = tSketch.SketchLines.AddByTwoPoints(lines(1).EndSketchPoint, _
+	    oTransGeom.CreatePoint2d((tCMS.ClearanceLength/2), -(tCMS.ClearanceWidth/2)))
+	
+	    lines(3) = tSketch.SketchLines.AddByTwoPoints(lines(2).EndSketchPoint, _
+	    oTransGeom.CreatePoint2d(-(tCMS.ClearanceLength/2), -(tCMS.ClearanceWidth/2)))
+		
+		lines(4) = tSketch.SketchLines.AddByTwoPoints(lines(3).EndSketchPoint, _
+	    lines(1).StartSketchPoint)
+		
+		' End the transaction for the triangle.
+	    oTrans.End
+	
+	End Sub
+
+End Class

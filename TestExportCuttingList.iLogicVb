@@ -1,0 +1,165 @@
+﻿'Lee Sinclair, 19/12/24
+'used following article to help build this script:
+'https://www.cadlinecommunity.co.uk/hc/en-us/articles/7619656499357-Exporting-data-into-Excel-from-Inventor-using-iLogic
+'
+'Builds a Formatted Jardan Frames Cutting List by pulling data from the main assembly
+'Run this script in the main assembly file of the frame
+
+
+Dim oAsmDoc As AssemblyDocument
+oAsmDoc = ThisApplication.ActiveDocument
+
+Dim oThisdoc = ThisDoc.Document 'get the currently running document name
+'Dim oPath As String = ThisDoc.Path 'gets the currently running documents location/path
+
+Dim oPath As String = "H:\LeeTemp" 'temp path for testing
+
+Dim oXLTempfile As String = oPath & "\CUTTING_TEMPLATE_CURRENT.xlsx" 'temp template file
+
+Dim oSheet As String = "Sheet2" 'sheet name in the template we are adding the data to
+
+'build the filename that needs to be standardised the same as the currently used cutting lists
+Dim oFileName As String = oPath & "/" & iProperties.Value("Project", "Part Number") & " - " & iProperties.Value("Summary", "Title")
+'Dim oFileName As String = oPath & "/" & "LEETEST"
+'add extension to the filename created above
+Dim oFile As String = oFileName & ".xlsx"
+
+
+'define excel application object
+excelApp = CreateObject("Excel.Application")
+
+excelApp.Visible = True
+excelApp.DisplayAlerts = False 'set to true if you want to ask to overwrite existing file
+
+
+'check if file exists
+If Dir(oFileName) <> "" Then
+		'file exists, we have already made it
+	Else
+		'workbook does NOT exist, so we need to create a new one
+		excelWorkbook = excelApp.Workbooks.Add(Template := oXLTempfile)
+End If
+
+
+'setup first row of data in worksheet
+Dim oRow As Double
+oRow = 10 'line 10 in template is where the data will start to be populated
+
+
+Dim oRefDocs As DocumentsEnumerator
+oRefDocs = oAsmDoc.AllReferencedDocuments
+Dim oDoc As Document
+
+
+'setup variables to be saved to file here
+Dim oProductRange As String
+Dim oProductSize As String
+Dim oPartNum As String
+Dim oDimension_LENGTH As String
+Dim oDimension_WIDTH As String
+Dim oDimension_THICKNESS As String
+Dim oFileType As String
+Dim oCncCode As String
+Dim oMaterial As String
+Dim oQty As String
+
+
+'excelApp.Range("B3").select
+'excelApp.ActiveCell.Value = iProperties.Value(oAsmDoc.DisplayName, "Project", "Part Number")
+
+
+
+For Each oDoc In oRefDocs
+	
+	oFileType = iProperties.Value(oDoc.DisplayName, "Project", "Document SubType Name") 'modelling = .IPT, assembly = .IAM
+	
+	'If oFileType.ToString = "Modeling" Or oFileType.ToString = "Assembly" Then
+				
+		oMaterial = iProperties.Value(oDoc.DisplayName, "Project", "Material")
+		
+		If oMaterial.ToString = "Hardwood" Or oMaterial.ToString = "CNC PLY" Then
+		
+			oPartNum = iProperties.Value(oDoc.DisplayName, "Project", "Part Number")
+			'oDimension_LENGTH = iProperties.Value(oDoc.DisplayName, "Custom", "LENGTH")
+			'oDimension_WIDTH = iProperties.Value(oDoc.DisplayName, "Custom", "WIDTH")
+			'oDimension_THICKNESS = iProperties.Value(oDoc.DisplayName, "Custom", "THICKNESS")
+			
+			'=============================================================
+			'Quantity is not a property in the parts files, so i will need to count each occurence of it and then add it to this field
+			'oQty = iProperties.Value(oDoc.DisplayName, "Project", "Qty")
+			'=============================================================
+			
+			
+			'Check if current part/document has a CNC_CODE iProperty, if not then use Part Number
+			Try
+				'if theres no CNC_CODE iProperty for this part
+				oCncCode = iProperties.Value(oDoc.DisplayName, "Custom", "CNC CODE")
+						
+			Catch
+				'use part no instead
+				oCncCode = iProperties.Value(oDoc.DisplayName, "Project", "Part Number")
+				
+				'TODO: add code here to see if the part number is more than 1 word 'ie. 501674 j18713'
+				' and if it is then add an underscore instead of the space to create a valid file name
+				
+			End Try
+			
+			'write to file
+			With excelApp
+			
+				.Range("A" & oRow).select
+				.ActiveCell.Value = oPartNum
+				
+				.Range("B" & oRow).select
+				.ActiveCell.Value = oDimension_WIDTH
+				
+				.Range("C" & oRow).select
+				.ActiveCell.Value = oDimension_THICKNESS
+				
+				.Range("D" & oRow).select
+				.ActiveCell.Value = oDimension_LENGTH
+				
+				.Range("E" & oRow).select
+				.ActiveCell.Value = oQty
+				
+				.Range("F" & oRow).select
+				.ActiveCell.Value = oMaterial
+
+				.Range("G" & oRow).select
+				.ActiveCell.Value = oCncCode
+				
+				.Range("H" & oRow).select
+				.ActiveCell.Value = oFileType
+				
+
+	
+			End With
+			
+		End If
+	
+	'End If
+
+
+	oRow = oRow + 1
+	
+Next
+
+
+
+
+'save the workbook
+excelWorkbook.SaveAs(oFileName)
+
+'close the workbook
+excelWorkbook.Close
+
+'exit the excel object
+excelApp.Quit
+
+'clear the variable
+excelApp = Nothing
+
+'update inventor assembly file
+'iLogicVb.UpdateWhenDone = True
+	
+	

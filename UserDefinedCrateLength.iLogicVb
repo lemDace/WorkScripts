@@ -1,0 +1,150 @@
+﻿'=======================================================================================
+' SCRIPT NAME: Assembly Parameter Synchronizer
+' AUTHOR: AI Assistant
+' DESCRIPTION: This script passes all listed parameters from the assembly to all of its
+'              child part documents. If a parameter doesn't exist in a child part,
+'              it will be created.
+'=======================================================================================
+
+' Prompts the user for a length with a dialog box.
+Dim totalLength As String
+totalLength = InputBox("Enter the total length of the crate in (mm):", "Set Total Length", "0")
+
+' Sets the value the user inputs to a parameter called TOTAL_LENGTH.
+Parameter("TOTAL_LENGTH") = totalLength & " mm"
+
+' Checks if TOTAL_LENGTH is greater than 2300.
+If Parameter("TOTAL_LENGTH") > 2299 Then
+    ' Sets the NUMBER_OF_SECTIONS parameter to 2.
+    Parameter("NUMBER_OF_SECTIONS") = 2
+Else If Parameter("TOTAL_LENGTH") < 2300 Then
+    ' Sets the NUMBER_OF_SECTIONS parameter to 1.
+    Parameter("NUMBER_OF_SECTIONS") = 1
+End If
+
+'--------------------------------------------------------------------------------------------------------------------------------------------------
+
+' Get the active assembly document.
+Dim asmDoc As AssemblyDocument = ThisDoc.Document
+
+' List all the parameters to pass.
+Dim paramsToPass As New List(Of String) From {"TOTAL_LENGTH", "NUMBER_OF_SECTIONS", "TOTAL_DEPTH", "TOTAL_HEIGHT"}
+
+' Wrap the entire parameter-passing section in a single Try...Catch block for better error handling.
+Try
+    ' Loop through each referenced document in the assembly.
+    For Each refDoc As Document In asmDoc.AllReferencedDocuments
+        ' Check if the referenced document is a part file.
+        If refDoc.DocumentType = DocumentTypeEnum.kPartDocumentObject Then
+            
+            ' Loop through the list of parameters to pass.
+            For Each paramName As String In paramsToPass
+            
+                ' Get the parameter from the assembly.
+                Dim asmParam As Inventor.Parameter = Nothing
+                For Each param As Inventor.Parameter In asmDoc.ComponentDefinition.Parameters
+                    If param.Name = paramName Then
+                        asmParam = param
+                        Exit For
+                    End If
+                Next
+                
+                ' If the assembly parameter exists...
+                If Not asmParam Is Nothing Then
+                    
+                    ' Get the parameters collection for the child part.
+                    Dim childParams As Inventor.Parameters = refDoc.ComponentDefinition.Parameters
+                    Dim childUserParams As Inventor.UserParameters = childParams.UserParameters
+                    
+                    ' Check if the parameter already exists in the child part.
+                    Dim childParam As Inventor.Parameter = Nothing
+                    
+                    Try
+                        childParam = childParams.Item(paramName)
+                    Catch
+                        childParam = Nothing
+                    End Try
+
+                    ' If the parameter does not exist in the child part, create it.
+                    If childParam Is Nothing Then
+                        ' Use the AddByExpression method to create the parameter.
+                        childUserParams.AddByExpression(paramName, asmParam.Expression, asmParam.Units)
+                    Else
+                        ' If the parameter exists, simply set its value and units.
+                        childParam.Value = asmParam.Value
+                        childParam.Units = asmParam.Units
+                    End If
+                End If
+            Next
+        End If
+    Next
+Catch ex As Exception
+    MessageBox.Show("An error occurred during parameter synchronization: " & vbCrLf & ex.Message, "Script Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+End Try
+
+' This line is important to ensure all updates are processed.
+iLogicVb.UpdateWhenDone = True
+
+'' Prompts the user for a length with a dialog box.
+'Dim totalLength As String
+'totalLength = InputBox("Enter the total length in mm:", "Set Total Length", "0")
+
+'' Sets the value the user inputs to a parameter called TOTAL_LENGTH.
+'Parameter("TOTAL_LENGTH") = totalLength & " mm"
+
+'' Checks if TOTAL_LENGTH is greater than 2300.
+'If Parameter("TOTAL_LENGTH") > 2299 Then
+'    ' Sets the NUMBER_OF_SECTIONS parameter to 2.
+'    Parameter("NUMBER_OF_SECTIONS") = 2
+'Else If Parameter("TOTAL_LENGTH") < 2300 Then
+'	' Sets the NUMBER_OF_SECTIONS parameter to 2.
+'    Parameter("NUMBER_OF_SECTIONS") = 1
+	
+'End If
+
+''--------------------------------------------------------------------------------------------------------------------------------------------------
+
+'' Get the active assembly document.
+'Dim asmDoc As AssemblyDocument = ThisDoc.Document
+
+'' CORRECTED CODE: Get the TOTAL_LENGTH parameter object from the assembly.
+'' We must loop through the parameters to avoid the casting error.
+'Dim asmParam As Inventor.Parameter = Nothing
+'For Each param As Inventor.Parameter In asmDoc.ComponentDefinition.Parameters
+'	If param.Name = "TOTAL_LENGTH" Then
+'		asmParam = param
+'		Exit For ' Found it, exit the loop
+'	End If
+'Next
+
+'' Check if the parameter exists before continuing.
+'If Not asmParam Is Nothing Then
+'	Dim assemblyTotalLength As Double = asmParam.Value
+'	Dim assemblyUnits As String = asmParam.Units
+	
+'	' Loop through each referenced document in the assembly.
+'	For Each refDoc As Document In asmDoc.AllReferencedDocuments
+'		' Check if the referenced document is a part file.
+'		If refDoc.DocumentType = DocumentTypeEnum.kPartDocumentObject Then
+			
+'			' Search for the parameter in the child part by name.
+'			Dim childParam As Inventor.Parameter = Nothing
+'			For Each param As Inventor.Parameter In refDoc.ComponentDefinition.Parameters
+'				If param.Name = "TOTAL_LENGTH" Then
+'					childParam = param
+'					Exit For ' Found it, exit the loop
+'				End If
+'			Next
+			
+'			' Check if the object was successfully created.
+'			If Not childParam Is Nothing Then
+'				' Set the value and units of the child's "TOTAL_LENGTH" parameter.
+'				childParam.Value = assemblyTotalLength
+'				childParam.Units = assemblyUnits
+'			End If
+'		End If
+'	Next
+'End If
+
+'' This line is important to ensure all updates are processed.
+'iLogicVb.UpdateWhenDone = True

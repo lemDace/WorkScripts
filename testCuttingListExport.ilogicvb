@@ -1,0 +1,78 @@
+﻿'Creates a formatted jardan frames cutting list using the main assembly drawing file
+'This will use parts list from the main drawing and create a cutting list based of the data
+
+
+' Get the active drawing document
+Dim oDrawingDoc As DrawingDocument = ThisApplication.ActiveDocument
+
+' Create an Excel application instance
+Dim oExcel As Object
+oExcel = CreateObject("Excel.Application")
+
+' Add a new workbook
+Dim oWorkbook As Object
+oWorkbook = oExcel.Workbooks.Add()
+
+' Initialize sheet counter
+Dim sheetIndex As Integer = 1
+
+' Loop through all sheets in the drawing
+For Each oSheet As Sheet In oDrawingDoc.Sheets
+    ' Loop through all parts lists on the sheet
+    Dim listIndex As Integer = 1
+    For Each oPartsList As PartsList In oSheet.PartsLists
+        ' Add a new worksheet for each parts list
+        Dim oWorksheet As Object
+        If sheetIndex = 1 And listIndex = 1 Then
+            oWorksheet = oWorkbook.Sheets(1) ' Use first sheet
+        Else
+            oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+        End If
+        oWorksheet.Name = "PartsList_" & sheetIndex & "_" & listIndex
+        
+        ' Ensure the parts list has at least one row
+        If oPartsList.PartsListRows.Count > 0 Then
+            ' Get the first row to extract column headers
+            Dim firstRow As PartsListRow = oPartsList.PartsListRows.Item(1)
+            
+            ' Determine the number of columns by checking how many items exist in the row
+            'Dim columnCount As Integer = firstRow.ItemCount
+			Dim columnCount As Integer = firstRow.Count
+            
+            ' Write column headers
+            For col As Integer = 1 To columnCount
+                'oWorksheet.Cells(1, col).Value = oPartsList.ColumnTitle(col)
+				oWorksheet.Cells(1, col).Value = oPartsList.PartsListColumns(col).Title
+            Next
+            
+            ' Write data rows
+            Dim rowCount As Integer = oPartsList.PartsListRows.Count
+            For row As Integer = 1 To rowCount
+                Dim oRow As PartsListRow = oPartsList.PartsListRows.Item(row)
+                For col As Integer = 1 To columnCount
+                    oWorksheet.Cells(row + 1, col).Value = oRow.Item(col).Value
+                Next
+            Next
+        End If
+        
+        listIndex += 1
+    Next
+    sheetIndex += 1
+Next
+
+' Save the Excel file
+Dim savePath As String = "H:\LeeTemp\PartsListsTemp.xlsx"
+oWorkbook.SaveAs(savePath)
+
+' Close Excel
+oWorkbook.Close()
+oExcel.Quit()
+
+' Release COM objects
+oWorkbook = Nothing
+oExcel = Nothing
+System.GC.Collect()
+System.GC.WaitForPendingFinalizers()
+
+' Notify the user
+MessageBox.Show("Parts lists exported to " & savePath, "Export Complete")
