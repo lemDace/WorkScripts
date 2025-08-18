@@ -1,0 +1,91 @@
+Sub Main()
+
+	'Runs from inside an assmebly file
+
+    Dim oAsm As Inventor.AssemblyDocument = ThisApplication.ActiveDocument
+    Dim oParams As Inventor.Parameters = oAsm.ComponentDefinition.Parameters
+    Dim oUserParams As Inventor.UserParameters = oParams.UserParameters
+
+    Dim paramNames As New System.Collections.Generic.List(Of String)
+    Dim paramValues As New System.Collections.Generic.Dictionary(Of String, String)
+
+    For Each oParam As Inventor.UserParameter In oUserParams
+        paramNames.Add(oParam.Name)
+        paramValues(oParam.Name) = oParam.Expression
+    Next
+
+    Dim selectedParams As System.Collections.Generic.List(Of String) = ShowParameterDialog(paramNames)
+
+    If selectedParams Is Nothing OrElse selectedParams.Count = 0 Then
+        System.Windows.Forms.MessageBox.Show("No parameters selected.", "iLogic")
+        Exit Sub
+    End If
+
+    For Each oComp As Inventor.ComponentOccurrence In oAsm.ComponentDefinition.Occurrences
+        If oComp.DefinitionDocumentType = Inventor.DocumentTypeEnum.kPartDocumentObject Then
+            Dim oPartDoc As Inventor.PartDocument = oComp.Definition.Document
+            Dim oPartParams As Inventor.Parameters = oPartDoc.ComponentDefinition.Parameters
+            Dim oPartUserParams As Inventor.UserParameters = oPartParams.UserParameters
+
+            For Each pName In selectedParams
+                Dim pValue As String = paramValues(pName)
+                Try
+                    Dim existingParam As Inventor.UserParameter = Nothing
+                    Try
+                        existingParam = oPartUserParams.Item(pName)
+                    Catch ex As Exception
+                    End Try
+
+                    If existingParam Is Nothing Then
+                        oPartUserParams.AddByExpression(pName, pValue, Inventor.UnitsTypeEnum.kDefaultDisplayLengthUnits)
+                    Else
+                        existingParam.Expression = pValue
+                    End If
+
+                Catch ex As Exception
+                    System.Windows.Forms.MessageBox.Show("Error setting parameter '" & pName & "' in " & oPartDoc.DisplayName & ": " & ex.Message)
+                End Try
+            Next
+            oPartDoc.Update()
+        End If
+    Next
+
+    System.Windows.Forms.MessageBox.Show("Parameters copied to all parts successfully!", "iLogic")
+
+End Sub
+
+Function ShowParameterDialog(paramNames As System.Collections.Generic.List(Of String)) As System.Collections.Generic.List(Of String)
+    Dim form As New System.Windows.Forms.Form()
+    form.Text = "Select Parameters to Copy"
+    'form.Size = New System.Drawing.Size(300, 400)
+	form.Width = 300
+	form.Height = 400
+    form.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
+
+    Dim clb As New System.Windows.Forms.CheckedListBox()
+    clb.Dock = System.Windows.Forms.DockStyle.Fill
+    clb.CheckOnClick = True
+    clb.Items.AddRange(paramNames.ToArray())
+
+    Dim okButton As New System.Windows.Forms.Button()
+    okButton.Text = "OK"
+    okButton.Dock = System.Windows.Forms.DockStyle.Bottom
+    AddHandler okButton.Click,
+        Sub()
+            form.DialogResult = System.Windows.Forms.DialogResult.OK
+            form.Close()
+        End Sub
+
+    form.Controls.Add(clb)
+    form.Controls.Add(okButton)
+
+    If form.ShowDialog() = System.Windows.Forms.DialogResult.OK Then
+        Dim selected As New System.Collections.Generic.List(Of String)
+        For Each item In clb.CheckedItems
+            selected.Add(item.ToString())
+        Next
+        Return selected
+    Else
+        Return Nothing
+    End If
+End Function
