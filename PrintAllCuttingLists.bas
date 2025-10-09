@@ -69,10 +69,10 @@ Sub BatchPrintAllRecords()
                 wsTemplate.Range("A3", "G6").Interior.Color = RGB(255, 0, 0) 'red,green,blue
             End If
             
-            'Check if this is row is a CUSTOM order, if so the change fill color to YELLOW
-            'If wsData.Cells(r, "AG").Value = "X" Then
-            '    wsTemplate.Range("A3", "G6").Interior.Color = RGB(255, 0, 0) 'red,green,blue
-            'End If
+            'Check if the cell in column W contains the word "CUSTOM" (case-insensitive)
+            If InStr(1, LCase(wsData.Cells(r, "W").Value), "custom") > 0 Then
+                wsTemplate.Range("A3", "G6").Interior.Color = RGB(255, 255, 0) 'yellow
+            End If
                                     
             wsTemplate.Columns("D").EntireColumn.AutoFit 'date column was not big enough so this stret
                                     
@@ -131,5 +131,6 @@ Function GetTemplatePathByModel(templateFolder As String, modelName As String) A
     
     GetTemplatePathByModel = foundTemplate
 End Function
+
 
 
