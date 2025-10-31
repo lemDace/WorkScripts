@@ -11,8 +11,8 @@ Sub UpdateProductOptionFinishes()
     folderPath = ThisWorkbook.Path & "\"
     
     ' Open both files
-    Set wbTarget = Workbooks.Open(folderPath & "UD03_ProductOptionFinishes.xls")
-    Set wbSource = Workbooks.Open(folderPath & "UD02_ProductOptions.xls")
+    Set wbTarget = Workbooks.Open(folderPath & "UD03_ProductOptionFinishes.xlsm")
+    Set wbSource = Workbooks.Open(folderPath & "UD02_ProductOptions.xlsx")
     
     ' Set the first sheets (edit if needed)
     Set wsTarget = wbTarget.Sheets(1)
