@@ -90,8 +90,8 @@ Sub UpdateProductOptionFinishes()
         .SortFields.Add key:=wsTarget.Range("K2:K" & lastUsedRow), _
             SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     
-        ' 1st priority (highest) – I
-        .SortFields.Add key:=wsTarget.Range("I2:I" & lastUsedRow), _
+        ' 1st priority (highest) – H
+        .SortFields.Add key:=wsTarget.Range("H2:H" & lastUsedRow), _
             SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     
         .SetRange sortRange
